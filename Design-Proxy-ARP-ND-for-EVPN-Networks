@@ -21,11 +21,169 @@
 2. Objective:
 
 
+The DC Use-Case :
+As described in [RFC6820] the IPv4 and IPv6 Address Resolution can
+   create a lot of issues in large DCs. In particular, the issues
+   created by the IPv4 Address Resolution Protocol procedures may be
+   significant.
+
+   On one hand, ARP Requests use broadcast MAC addresses, therefore any
+   Tenant System in a large Broadcast Domain will see a large amount of
+   ARP traffic, which is not addressed to most of the receivers.
+
+   On the other hand, the flooding issue becomes even worse if some
+   Tenant Systems disappear from the broadcast domain, since some
+   implementations will persistently retry sending ARP Requests. As
+   [RFC6820] states, there are no clear requirements for retransmitting
+   ARP Requests in the absence of replies, hence an implementation may
+   choose to keep retrying endlessly even if there are no replies.
+
+   The amount of flooding that Address Resolution creates can be
+   mitigated with the use of EVPN and its Proxy-ARP/ND function.
+
+
 
 
 
 3. Solution:
+
+
+Solution Requirements
+
+   The distributed EVPN Proxy-ARP/ND function described in this document
+   meets the following requirements:
+
+   o The solution supports the learning of the CE IP->MAC entries on the
+     EVPN PEs via the management, control or data planes. An
+     implementation should allow to intentionally enable or disable
+     those possible learning mechanisms.
+
+   o The solution may suppress completely the flooding of the ARP/ND
+     messages in the EVPN network, assuming that all the CE IP->MAC
+     addresses local to the PEs are known or provisioned on the PEs from
+     a management system. Note that in this case, the unknown unicast
+     flooded traffic can also be suppressed, since all the expected
+     unicast traffic will be destined to known MAC addresses in the PE
+     BDs.
+
+   o The solution reduces significantly the flooding of the ARP/ND
+     messages in the EVPN network, assuming that some or all the CE
+     IP->MAC addresses are learned on the data plane by snooping ARP/ND
+     messages issued by the CEs.
+
+   o The solution provides a way to refresh periodically the CE IP->MAC
+     entries learned through the data plane, so that the IP->MAC entries
+     are not withdrawn by EVPN when they age out unless the CE is not
+     active anymore. This option helps reducing the EVPN control plane
+     overhead in a network with active CEs that do not send packets
+     frequently.
+
+   o The solution provides a mechanism to detect duplicate IP addresses.
+     In case of duplication, the detecting PE should not reply to
+     requests for the duplicate IP. Instead, the PE should alert the
+     operator and may optionally prevent any other CE from sending
+     traffic to the duplicate IP.
+
+   o The solution should not change any existing behavior in the CEs
+     connected to the EVPN PEs.
+
+
+
+Solution Description
+
+   Figure 1 illustrates an example EVPN network where the Proxy-ARP/ND
+   function is enabled.
+
+                                                         BD1
+                                                     Proxy-ARP/ND
+                                                    +------------+
+   IP1/M1          +----------------------------+   |IP1->M1 EVPN|
+    GARP --->Proxy-ARP/ND                       |   |IP2->M2 EVPN|
+   +---+      +----+---+   RT2(IP1/M1)          |   |IP3->M3 sta |
+   |CE1+------+   BD1  |    ------>      +------+---|IP4->M4 dyn |
+   +---+      +--------+                 |          +------------+
+                  PE1                    | +--------+ Who has IP1?
+                   |           EVPN      | |   BD1  | <-----  +---+
+                   |           EVI1      | |        |   |     |CE3|
+   IP2/M2          |                     | |        | ----->  +---+
+    GARP  --->Proxy-ARP/ND               | +--------+   |  IP1->M1
+     +---+    +--------+   RT2(IP2/M2)   |              |
+     |CE2+----+   BD1  |    ------>      +--------------+
+     +---+    +--------+                       PE3|    +---+
+                  PE2                           | +----+CE4|
+                   +----------------------------+      +---+
+                                                 <---IP4/M4 GARP
+
+                   Figure 1 Proxy-ARP/ND network example
+
+   When the Proxy-ARP/ND function is enabled in a BD (Broadcast Domain)
+   of the EVPN PEs, each PE creates a Proxy table specific to that BD
+   that can contain three types of Proxy-ARP/ND entries:
+
+   a) Dynamic entries: learned by snooping CE's ARP and ND messages. For
+      instance, IP4->M4 in Figure 1.
+
+   b) Static entries: provisioned on the PE by the management system.
+      For instance, IP3->M3 in Figure 1.
+
+   c) EVPN-learned entries: learned from the IP/MAC information encoded
+      in the received RT2's coming from remote PEs. For instance, IP1->M1 and IP2->M2 in Figure 1.
+
+As a high level example, the operation of the EVPN Proxy-ARP/ND
+   function in the network of Figure 1 is described below. In this
+   example we assume IP1, IP2 and IP3 are IPv4 addresses:
+
+   1. Proxy-ARP/ND is enabled in BD1 of PE1, PE2 and PE3.
+
+   2. The PEs start adding dynamic, static and EVPN-learned entries to
+      their Proxy tables:
+
+      a. PE3 adds IP1->M1 and IP2->M2 based on the EVPN routes received
+         from PE1 and PE2. Those entries were previously learned as
+         dynamic entries in PE1 and PE2 respectively, and advertised in
+         BGP EVPN.
+      b. PE3 adds IP4->M4 as dynamic. This entry is learned by snooping
+         the corresponding ARP messages sent by CE4.
+      c. An operator also provisions the static entry IP3->M3.
+
+   3. When CE3 sends an ARP Request asking for the MAC address of IP1,
+         PE3 will:
+
+      a. Intercept the ARP Request and perform a Proxy-ARP lookup for
+         IP1.
+      b. If the lookup is successful (as in Figure 1), PE3 will send an
+         ARP Reply with IP1->M1. The ARP Request will not be flooded to
+         the EVPN network or any other local CEs.
+      c. If the lookup is not successful, PE3 will flood the ARP Request
+         in the EVPN network and the other local CEs.
+
+   As PE3 learns more and more host entries in the Proxy-ARP/ND table,
+   the flooding of ARP Request messages is reduced and in some cases it
+   can even be suppressed. In a network where most of the participant
+   CEs are not moving between PEs and they advertise their presence with
+   GARPs or unsolicited NA messages, the ARP/ND flooding as well as the
+   unknown unicast flooding can practically be suppressed. In an EVPN-
+   based IXP network, where all the entries are Static, the ARP/ND
+   flooding is in fact totally suppressed.
+
+   The Proxy-ARP/ND function can be structured in six sub-functions or
+   procedures:
+
+   1. Learning sub-function
+   2. Reply sub-function
+   3. Unicast-forward sub-function
+   4. Maintenance sub-function
+   5. Flooding reduction/suppression sub-function
+   6. Duplicate IP detection sub-function
+
+
 3.1. High Level Design
+
+
+
+
+
+
 
 3.1. Low Level Design
 
