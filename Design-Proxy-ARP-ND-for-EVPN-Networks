@@ -1,6 +1,17 @@
 1. Problem Statement:
 
-
+   The EVPN MAC/IP Advertisement route can optionally carry IPv4 and
+   IPv6 addresses associated with a MAC address. Remote PEs can use this
+   information to reply locally (act as proxy) to IPv4 ARP requests and
+   IPv6 Neighbor Solicitation messages (or 'unicast-forward' them to the
+   owner of the MAC) and reduce/suppress the flooding produced by the
+   Address Resolution procedure. This EVPN capability is extremely
+   useful in Internet Exchange Points (IXPs) and Data Centers (DCs) with
+   large broadcast domains, where the amount of ARP/ND flooded traffic
+   causes issues on routers and CEs. This document describes how the
+   EVPN Proxy-ARP/ND function may be implemented to help IXPs and other
+   operators deal with the issues derived from Address Resolution in
+   large broadcast domains.
 
 
 
