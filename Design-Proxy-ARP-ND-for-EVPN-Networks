@@ -22,7 +22,7 @@
 
 
 The DC Use-Case :
-As described in [RFC6820] the IPv4 and IPv6 Address Resolution can
+   As described in [RFC6820] the IPv4 and IPv6 Address Resolution can
    create a lot of issues in large DCs. In particular, the issues
    created by the IPv4 Address Resolution Protocol procedures may be
    significant.
@@ -129,7 +129,7 @@ Solution Description
    c) EVPN-learned entries: learned from the IP/MAC information encoded
       in the received RT2's coming from remote PEs. For instance, IP1->M1 and IP2->M2 in Figure 1.
 
-As a high level example, the operation of the EVPN Proxy-ARP/ND
+   As a high level example, the operation of the EVPN Proxy-ARP/ND
    function in the network of Figure 1 is described below. In this
    example we assume IP1, IP2 and IP3 are IPv4 addresses:
 
@@ -176,6 +176,9 @@ As a high level example, the operation of the EVPN Proxy-ARP/ND
    5. Flooding reduction/suppression sub-function
    6. Duplicate IP detection sub-function
 
+   A Proxy-ARP/ND implementation MAY support all those sub-functions or
+   only a subset of them. The following sections describe each
+   individual sub-function.
 
 3.1. High Level Design
 
