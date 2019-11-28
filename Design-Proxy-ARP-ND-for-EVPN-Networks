@@ -13,11 +13,6 @@
    operators deal with the issues derived from Address Resolution in
    large broadcast domains.
 
-
-
-
-
-
 2. Objective:
 
 
@@ -40,9 +35,6 @@ The DC Use-Case :
 
    The amount of flooding that Address Resolution creates can be
    mitigated with the use of EVPN and its Proxy-ARP/ND function.
-
-
-
 
 
 3. Solution:
@@ -86,8 +78,6 @@ Solution Requirements
 
    o The solution should not change any existing behavior in the CEs
      connected to the EVPN PEs.
-
-
 
 Solution Description
 
@@ -179,6 +169,7 @@ Solution Description
    A Proxy-ARP/ND implementation MAY support all those sub-functions or
    only a subset of them. The following sections describe each
    individual sub-function.
+   
 
 3.1. High Level Design
 
