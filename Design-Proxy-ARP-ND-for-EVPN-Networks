@@ -40,7 +40,7 @@ The DC Use-Case :
 3. Solution:
 
 
-Solution Requirements
+o Solution Requirements
 
    The distributed EVPN Proxy-ARP/ND function described in this document
    meets the following requirements:
@@ -79,7 +79,7 @@ Solution Requirements
    o The solution should not change any existing behavior in the CEs
      connected to the EVPN PEs.
 
-Solution Description
+o Solution Description
 
    Figure 1 illustrates an example EVPN network where the Proxy-ARP/ND
    function is enabled.
